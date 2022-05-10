@@ -147,11 +147,25 @@ def encodeScrapedPictures(pathToFacePicFolder):
 idsToNamesAndFaceEncodings = encodeScrapedPictures("./peopleBasePictures")
 
 
-def produceLocationsAndRecognitionsForImageList(idsToNamesAndFaceEncodings, images):
-    #Produces a list of information for each frame, and a mapping from the contestant ID's to their names and face encodings.
+# Split images by scene
+# For each scene 
+#   for each image in scene
+#       for each face detected
+#           get distance for each picture of person
+#   Decide which group of detections is which in between frames
+#   define tracks as a list
+#   for each image
+#       for each detection in image:
+#           if first image make a new track
+#           else see if they have significant overlap with existing track (even if the there hasn't been a detection for some frames)
+#           I will have to keep dormat and non-dormant tracks separate
+#   Assign groups of detections based no their (lowest? aggregate?) dostance from each person in the databse
+
+def produceLocationsAndRecognitionsForImageList(namesIDsToFaceEncodings, images):
+    #Produces a list of information for each frame, and a mapping from the contestant ID's to their information.
 
     #Parameters:
-    #    namesIDsToFaceEncodings (str):the path to the folder containing the contestant images with each sub folder containing several images of the contestants.
+    #    contestantFaceEncodings (dict): A map from the contestant id to their name and a list of their face encodings from the pictures
     #    images (list): the images from the video to be processed
 
     #Returns:
@@ -167,6 +181,8 @@ def produceLocationsAndRecognitionsForImageList(idsToNamesAndFaceEncodings, imag
 
         encodings = face_recognition.face_encodings(alteredFrame, known_face_locations = locs, num_jitters=20, model="large")
         
+        for id in namesIDsToFaceEncodings:
+            name, encodings = namesIDsToFaceEncodings[id]
         
         bboxesWithIdentifiers = []
         # I wanna get the relative score of each face detected in the frame to each face in the contestant set
