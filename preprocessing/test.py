@@ -144,11 +144,11 @@ def encodeScrapedPictures(pathToFacePicFolder):
         
     return idsToNamesAndFaceEncodings
 
-namesToFaceEncodings = encodeScrapedPictures("./peopleBasePictures")
+idsToNamesAndFaceEncodings = encodeScrapedPictures("./peopleBasePictures")
 
 
-def produceLocationsAndRecognitionsForImageList(namesIDsToFaceEncodings, images):
-    #Produces a list of information for each frame, and a mapping from the contestant ID's to their information.
+def produceLocationsAndRecognitionsForImageList(idsToNamesAndFaceEncodings, images):
+    #Produces a list of information for each frame, and a mapping from the contestant ID's to their names and face encodings.
 
     #Parameters:
     #    namesIDsToFaceEncodings (str):the path to the folder containing the contestant images with each sub folder containing several images of the contestants.
@@ -157,7 +157,6 @@ def produceLocationsAndRecognitionsForImageList(namesIDsToFaceEncodings, images)
     #Returns:
     #    contestantFaceEncodings (dict): A map from the contestant id to their name and a list of their face encodings from the pictures
     print("produceLocationsAndRecognitionsForImageList")
-    facesToLookFor = namesIDsToFaceEncodings[1]
 
     bboxesAndIdentifiersByFrame = []
     for i in tqdm(range(len(images))):
@@ -170,6 +169,7 @@ def produceLocationsAndRecognitionsForImageList(namesIDsToFaceEncodings, images)
         
         
         bboxesWithIdentifiers = []
+        # I wanna get the relative score of each face detected in the frame to each face in the contestant set
         for j in range(len(encodings)):
             distances = face_recognition.face_distance(facesToLookFor, encodings[j])
             bestFace = np.argmin(distances)
