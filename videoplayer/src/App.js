@@ -12,6 +12,9 @@ import VolumeMuteIcon  from '@material-ui/icons/VolumeMute'
 import screenfull from 'screenfull';
 import BottomControlBar from './components/BottomControlBar/BottomControlBar';
 import stuff from "./hi.js"
+import jsonAssignments from "./loadPureKNNAssignments.js"
+import contestantInfo from "./loadContestantInfo.js"
+import { pink } from '@material-ui/core/colors';
 // "https://vimeo.com/389022114"
 const listV = stuff["content"].split("$")
 let mapthing = {}
@@ -30,6 +33,7 @@ for (var i =0; i < listV.length; i++){
   }
 }
 // console.log(mapthing)
+mapthing = jsonAssignments
 
 class App extends Component {
 
@@ -37,6 +41,7 @@ class App extends Component {
     super(props)
     this.state = {
       playing : false,
+      realPause : true,
       videoLengthSeconds : 600,
       progress : 0,
       volume : 0,
@@ -50,6 +55,7 @@ class App extends Component {
       progFractionForFaces : 0,
       currBBoxInfo : undefined,
       visibleBoundingBox : "",
+      personInfo :"",
       aBBOXIsVisible : false
     }
 
@@ -66,16 +72,20 @@ class App extends Component {
     this.getVolume = this.getVolume.bind(this)
     this.handleProgress = this.handleProgress.bind(this)
     this.hackyTimeoutAdder = this.hackyTimeoutAdder.bind(this)
-    this.faceBoundingBoxes = this.faceBoundingBoxes.bind(this)
     this.pause = this.pause.bind(this)
     this.mouseExitPlayer = this.mouseExitPlayer.bind(this)
+    this.facePauseUnpause = this.facePauseUnpause.bind(this)
     
   }
 
   handleProgress(stuff){
     clearTimeout(this.timeoutHack)
     const boxInfo = mapthing[Math.round(stuff.played * 150289)]
-
+    console.log("real")
+    console.log(this.state.realPause)
+    console.log("play")
+    console.log(this.state.playing)
+    console.log("-------------")
     this.setState({
       progress : Math.round(stuff.playedSeconds),
       progFractionForFaces : stuff.played,
@@ -126,38 +136,47 @@ class App extends Component {
       }
 
       if (this.state.aBBOXIsVisible){
-        console.log(this.state)
-        const top = modificationRatio*this.state.currBBOX[0] + topBarSize
-        const right = modificationRatio*this.state.currBBOX[1]
-        const bottom = modificationRatio*this.state.currBBOX[2] + topBarSize
-        const left = modificationRatio*this.state.currBBOX[3]
+
+        const top = modificationRatio*parseInt(this.state.currBBOX[1][0]/2) + topBarSize
+        const right = modificationRatio*parseInt(this.state.currBBOX[1][1]/2)
+        const bottom = modificationRatio*parseInt(this.state.currBBOX[1][2]/2) + topBarSize
+        const left = modificationRatio*parseInt(this.state.currBBOX[1][3]/2)
         if (!(y >= top && y <= bottom && x >= left && x <= right)){
-          this.play()
+          this.facePauseUnpause(true)
           this.setState({
             visibleBoundingBox : "",
+            personInfo : "",
             aBBOXIsVisible : false,
             currBBOX : null
           })
         }
       } else{
         for (var i =0; i < this.state.currBBoxInfo.length; i++){
-          const top = modificationRatio*this.state.currBBoxInfo[i][0] + topBarSize
-          const right = modificationRatio*this.state.currBBoxInfo[i][1]
-          const bottom = modificationRatio*this.state.currBBoxInfo[i][2] + topBarSize
-          const left = modificationRatio*this.state.currBBoxInfo[i][3]
+          const top = modificationRatio*parseInt(this.state.currBBoxInfo[i][1][0]/2) + topBarSize
+          const right = modificationRatio*parseInt(this.state.currBBoxInfo[i][1][1]/2)
+          const bottom = modificationRatio*parseInt(this.state.currBBoxInfo[i][1][2]/2) + topBarSize
+          const left = modificationRatio*parseInt(this.state.currBBoxInfo[i][1][3]/2)
           
           if (y >= top && y <= bottom && x >= left && x <= right){
-            this.pause()
+            this.facePauseUnpause(false)
+            // console.log(contestantInfo[this.state.currBBoxInfo[i][0]])
             this.setState({
-              visibleBoundingBox : <div className = "faceBox" style={{  position : "absolute", top : top, width : right - left, height : bottom - top, left : left}} onMouseLeave={this.mouseExitPlayer}> </div>,
+              visibleBoundingBox : <div className = "faceBox" style={{  position : "absolute", top : top, width : right - left, height : bottom - top, left : left}} ></div>,
+              personInfo : <div style={{  position : "absolute", top : 0, width : 100, height : 250, left : 0, backgroundColor:"pink", opacity:0.5}} >
+                                      <div>Name {contestantInfo[this.state.currBBoxInfo[i][0]][0]}</div>
+                                      <div>Age {contestantInfo[this.state.currBBoxInfo[i][0]][1]}</div>
+                                      <div>Hometown {contestantInfo[this.state.currBBoxInfo[i][0]][2]}</div>
+                                      <div>Job {contestantInfo[this.state.currBBoxInfo[i][0]][3]}</div>
+              </div>,
               aBBOXIsVisible : true,
               currBBOX : this.state.currBBoxInfo[i]
             })
             break
           } else {
-            this.play()
+            this.facePauseUnpause(true)
             this.setState({
               visibleBoundingBox : "",
+              personInfo : "",
               aBBOXIsVisible : false,
               currBBOX : null
             })
@@ -169,65 +188,32 @@ class App extends Component {
 
   }
 
+  facePauseUnpause(val){
+    
+    if (this.state.realPause){
+      return
+    }
+    else {
+      this.setState({
+        playing : val
+      })
+    }
+    clearTimeout(this.timeoutHack)
+    if (this.state.playing){
+      this.timeoutHack = setTimeout(this.hackyTimeoutAdder, 33)
+    }
+  }
   // SO i might need to have a separate BBOX induced pause thing to handle all teh cases
   // so that I don't unpause when mousing past faces.
   mouseExitPlayer(){
-    this.play()
+    this.facePauseUnpause(true)
     this.setState({
       visibleBoundingBox : "",
+      personInfo : "",
       aBBOXIsVisible : false,
       currBBOX : null
     })
   }
-
-  faceBoundingBoxes(){
-    if (this.playerContainerRef === undefined || this.state.progress === 0){
-      return []
-    }
-    const playerRect = this.playerContainerRef.getBoundingClientRect()
-    const boxInfo = mapthing[Math.round(this.state.progFractionForFaces * 150289)]
-    // bachelor frame count 150289
-    // debate fraem count 228398
-    
-    if (boxInfo === undefined){
-      // console.log("HI")
-      return []
-    } 
-    // console.log(boxInfo.length)
-    // console.log(Math.round(this.state.progFractionForFaces * 150289))
-    // console.log(boxInfo)
-    let topBarSize = 0
-    let modificationRatio = 1 
-    if(this.state.fullscreen){
-      const currHeightWidthRatio = window.innerHeight/window.innerWidth
-      
-      if(currHeightWidthRatio > this.standardHeightWidthRatio ){
-        modificationRatio  = window.innerWidth/640
-        topBarSize = Math.round(((window.innerHeight-360*modificationRatio))/2)
-      }
-    }
-    let boxList = []
-    for (var i =0; i < boxInfo.length; i++){
-      const top = modificationRatio*boxInfo[i][0] + topBarSize
-      const right = modificationRatio*boxInfo[i][1]
-      const bottom = modificationRatio*boxInfo[i][2] + topBarSize
-      const left = modificationRatio*boxInfo[i][3]
-      
-      // boxList.push(<div key = {i} className = "faceBox" style={{  position : "absolute", top : yPos, left : xPos, width : width, height : height}}>
-
-      // </div>)
-      // 
-      boxList.push(<div key = {i} className = "faceBox" style={{  position : "absolute", top : top, width : right - left, height : bottom - top, left : left}}>
-
-      </div>)
-      
-    }
-    return(
-      boxList
-    )
-  }
-
-  
 
   pause(){
     clearTimeout(this.timeoutHack)
@@ -250,7 +236,11 @@ class App extends Component {
     
     clearTimeout(this.timeoutHack)
     this.setState({
-      playing : !this.state.playing
+      playing : !this.state.playing,
+      realPause : this.state.playing,
+      visibleBoundingBox : "",
+      aBBOXIsVisible : false,
+      currBBOX : null
     })
     if (this.state.playing){
       this.hackyTimeoutAdder()
@@ -383,6 +373,7 @@ class App extends Component {
           <div className='innerContainer' ref={r => {this.playerContainerRef = r}} onMouseEnter={() => this.setVisibleControls(true)} onMouseLeave={() => this.setVisibleControls(false)} onMouseMove={e => this.setMouseMove(e)}>
             <div className="playerWrapper" onMouseMove={this._onMouseMove.bind(this)} onMouseLeave={this.mouseExitPlayer}>
               {this.state.visibleBoundingBox}
+              {this.state.personInfo}
               <ReactPlayer
                 ref={p => { this.playerRef = p }}
                 controls={false}
@@ -402,10 +393,7 @@ class App extends Component {
                 </Toolbar> */}
                 <div className='midControlSection' onClick={this.pauseUnpause} onMouseMove={this._onMouseMove.bind(this)}>
                   <div className='midControlSectionContolHolder' style={this.state.visibleControls ? {height: "40%"} : {height: "100%"}}>
-                   {/* <button className="buttonStyle playButtonCenter" style={this.state.visibleControls ? {} : {visibility : "hidden"}}> */}
-                   {/* ref={p => {this.centerPlayButtonRef = p}} */}
-                      {/* {this.deliverPlayPauseIcon()}
-                    </button> */}
+                    
                   </div>
                 </div>
                 {this.state.visibleControls ? 
